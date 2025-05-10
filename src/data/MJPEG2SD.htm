@@ -1,0 +1,786 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>ESP32-CAM</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: #e6f0fa;
+      color: #333;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      margin-bottom: 30px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #4dabf7;
+    }
+    
+    .main-title {
+      font-size: 28px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .nav {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .nav-item {
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      color: #666;
+    }
+    
+    .nav-item.active {
+      color: #4dabf7;
+      border-bottom: 2px solid #4dabf7;
+    }
+    
+    .nav-item:hover {
+      color: #4dabf7;
+    }
+    
+    .content-section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .video-container {
+      position: relative;
+      width: 100%;
+      background: #333;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      min-height: 300px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .video {
+      width: 100%;
+      display: block;
+      max-height: 70vh;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: none;
+      outline: none;
+    }
+    
+    .btn-primary {
+      background-color: #4dabf7;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background-color: #f1f3f5;
+      color: #495057;
+    }
+    
+    .btn-danger {
+      background-color: #fa5252;
+      color: white;
+    }
+    
+    .btn-success {
+      background-color: #40c057;
+      color: white;
+    }
+    
+    .btn-info {
+      background-color: #4dabf7;
+      color: white;
+    }
+    
+    .btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+    
+    .btn:active {
+      transform: translateY(1px);
+    }
+    
+    .btn svg {
+      margin-right: 8px;
+    }
+    
+    .notification {
+      background-color: #ffe3e3;
+      border-left: 4px solid #fa5252;
+      padding: 12px 15px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .notification-icon {
+      margin-right: 10px;
+      color: #fa5252;
+    }
+    
+    .notification-content {
+      flex: 1;
+    }
+    
+    .notification-time {
+      color: #868e96;
+      font-size: 12px;
+    }
+    
+    .archive-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      border-bottom: 1px solid #f1f3f5;
+    }
+    
+    .archive-item:last-child {
+      border-bottom: none;
+    }
+    
+    .archive-date {
+      font-size: 14px;
+      color: #495057;
+    }
+    
+    .archive-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .play-btn {
+      background-color: #4dabf7;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    
+    .settings-group {
+      margin-bottom: 20px;
+    }
+    
+    .settings-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #495057;
+    }
+    
+    .settings-control {
+      margin-bottom: 15px;
+    }
+    
+    .settings-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .settings-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .settings-slider {
+      width: 100%;
+    }
+    
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .slider-value {
+      width: 40px;
+      text-align: center;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #495057;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .two-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    /* Original CSS compatibility */
+    .hidden {
+      display: none;
+    }
+    
+    #content {
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    #mjpeg_dest {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      object-fit: contain;
+    }
+    
+    #state-container {
+      margin-top: 10px;
+      text-align: center;
+    }
+    
+    .data {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+    
+    th, td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid #f1f3f5;
+    }
+    
+    th {
+      font-weight: 600;
+      color: #495057;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+    }
+    
+    select {
+      padding: 8px 12px;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      width: 100%;
+    }
+    
+    /* Ensure original button styles work with new design */
+    input[type="button"], input[type="submit"], button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: none;
+      outline: none;
+      margin: 5px;
+      background-color: #4dabf7;
+      color: white;
+    }
+    
+    input[type="button"]:hover, input[type="submit"]:hover, button:hover {
+      opacity: 0.9;
+    }
+    
+    #cam_stop {
+      background-color: #40c057;
+    }
+    
+    #cam_stop.started {
+      background-color: #fa5252;
+    }
+    
+    #cam_start, #play_start, #record_start {
+      background-color: #4dabf7;
+    }
+    
+    .red {
+      color: #fa5252;
+    }
+    
+    .green {
+      color: #40c057;
+    }
+    
+    /* Media Queries for Responsiveness */
+    @media (max-width: 768px) {
+      .two-columns {
+        grid-template-columns: 1fr;
+      }
+      
+      .controls {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+      }
+      
+      .header {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .nav {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">ESP32-CAM</div>
+      <nav class="nav">
+        <div id="streamTab" class="nav-item active" onclick="changeTab('stream')">Трансляція</div>
+        <div id="archiveTab" class="nav-item" onclick="changeTab('archive')">Архів</div>
+        <div id="notificationTab" class="nav-item" onclick="changeTab('notification')">Сповіщення</div>
+        <div id="settingsTab" class="nav-item" onclick="changeTab('settings')">Налаштування</div>
+      </nav>
+    </header>
+
+    <h1 class="main-title">Live Стрім</h1>
+    
+    <div id="streamContent" class="tab-content content-section active">
+      <div class="video-container">
+        <img id="mjpeg_dest" src="" alt="Camera Stream" class="video">
+      </div>
+      
+      <div class="controls">
+        <button id="cam_start" class="btn btn-primary" onclick="startCam();">
+          <span id="start_stream">Start Stream</span>
+        </button>
+        <button id="cam_stop" class="btn btn-success" onclick="stopCam();">
+          <span id="stop_stream">Stop Stream</span>
+        </button>
+        <button id="record_start" class="btn btn-danger" onclick="recordCam();">
+          <span id="start_record">Почати запис</span>
+        </button>
+        <button id="take_still" class="btn btn-info" onclick="takePic();">
+          Get Still
+        </button>
+        <button id="set_motion" class="btn btn-secondary" onclick="toggleMotion();">
+          <span id="motion_txt">Enable Motion</span>
+        </button>
+      </div>
+      
+      <div id="state-container">
+        <div id="cam_info" class="data"></div>
+      </div>
+    </div>
+    
+    <div id="archiveContent" class="tab-content content-section">
+      <h2 class="section-title">Архів Записів</h2>
+      <div id="file_list"></div>
+    </div>
+    
+    <div id="notificationContent" class="tab-content content-section">
+      <h2 class="section-title">Сповіщення</h2>
+      <div id="motion_list"></div>
+    </div>
+    
+    <div id="settingsContent" class="tab-content content-section">
+      <h2 class="section-title">Налаштування</h2>
+      <div class="two-columns">
+        <div class="settings-group">
+          <h3 class="settings-title">Загальні налаштування</h3>
+          <div class="settings-control">
+            <label class="settings-label" for="fps">FPS</label>
+            <div class="slider-container">
+              <input type="range" id="fps" min="1" max="30" value="10" class="settings-slider" onchange="setFPS(this.value);">
+              <span id="fps_value" class="slider-value">10</span>
+            </div>
+          </div>
+          <div class="settings-control">
+            <label class="settings-label" for="quality">Якість</label>
+            <div class="slider-container">
+              <input type="range" id="quality" min="1" max="63" value="10" class="settings-slider" onchange="setquality(this.value);">
+              <span id="quality_value" class="slider-value">10</span>
+            </div>
+          </div>
+          <div class="settings-control">
+            <label class="settings-label" for="resolution">Роздільна здатність</label>
+            <select id="resolution" onchange="setRes(this.value);">
+              <option value="10">UXGA(1600x1200)</option>
+              <option value="9">SXGA(1280x1024)</option>
+              <option value="8">XGA(1024x768)</option>
+              <option value="7">SVGA(800x600)</option>
+              <option value="6">VGA(640x480)</option>
+              <option value="5">CIF(400x296)</option>
+              <option value="4">QVGA(320x240)</option>
+              <option value="3">HQVGA(240x176)</option>
+              <option value="0">QQVGA(160x120)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="settings-group">
+          <h3 class="settings-title">Аудіо/Відео налаштування</h3>
+          <div class="settings-control">
+            <label class="settings-label" for="brightness">Яскравість</label>
+            <div class="slider-container">
+              <input type="range" id="brightness" min="-2" max="2" value="0" class="settings-slider" onchange="setBrightness(this.value);">
+              <span id="brightness_value" class="slider-value">0</span>
+            </div>
+          </div>
+          <div class="settings-control">
+            <label class="settings-label" for="contrast">Контраст</label>
+            <div class="slider-container">
+              <input type="range" id="contrast" min="-2" max="2" value="0" class="settings-slider" onchange="setContrast(this.value);">
+              <span id="contrast_value" class="slider-value">0</span>
+            </div>
+          </div>
+          <div class="settings-control">
+            <label class="settings-label" for="gain">Мікрофон</label>
+            <div class="slider-container">
+              <input type="range" id="gain" min="0" max="10" value="0" class="settings-slider" onchange="setGain(this.value);">
+              <span id="gain_value" class="slider-value">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden container for original controls -->
+      <div id="original_controls" class="hidden">
+        <div id="control_panel"></div>
+        <div id="extd_panel"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Camera configuration object (will be populated by the ESP32-CAM)
+    var camera_config = {};
+    
+    // Change tab function
+    function changeTab(tab) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      
+      // Show selected tab
+      document.getElementById(tab + 'Content').classList.add('active');
+      document.getElementById(tab + 'Tab').classList.add('active');
+      
+      // Special handling for archive tab
+      if (tab === 'archive' && typeof updateFileList === 'function') {
+        updateFileList();
+      }
+      
+      // Special handling for notification tab
+      if (tab === 'notification' && typeof updateMotionList === 'function') {
+        updateMotionList();
+      }
+    }
+    
+    // Helper to create archive items with the new design
+    function createArchiveItem(date, url) {
+      const item = document.createElement('div');
+      item.className = 'archive-item';
+      
+      const dateElem = document.createElement('div');
+      dateElem.className = 'archive-date';
+      dateElem.textContent = date;
+      
+      const actions = document.createElement('div');
+      actions.className = 'archive-actions';
+      
+      const playBtn = document.createElement('div');
+      playBtn.className = 'play-btn';
+      playBtn.innerHTML = '▶';
+      playBtn.onclick = function() {
+        window.location.href = url;
+      };
+      
+      actions.appendChild(playBtn);
+      item.appendChild(dateElem);
+      item.appendChild(actions);
+      
+      return item;
+    }
+    
+    // Helper to create notification items
+    function createNotificationItem(text, time) {
+      const notification = document.createElement('div');
+      notification.className = 'notification';
+      
+      const icon = document.createElement('div');
+      icon.className = 'notification-icon';
+      icon.innerHTML = '⚠️';
+      
+      const content = document.createElement('div');
+      content.className = 'notification-content';
+      content.textContent = text;
+      
+      const timestamp = document.createElement('div');
+      timestamp.className = 'notification-time';
+      timestamp.textContent = time || new Date().toLocaleTimeString();
+      
+      notification.appendChild(icon);
+      content.appendChild(timestamp);
+      notification.appendChild(content);
+      
+      return notification;
+    }
+    
+    // Update UI sliders when values change
+    function updateSliderValue(id, value) {
+      const valueElement = document.getElementById(id + '_value');
+      if (valueElement) {
+        valueElement.textContent = value;
+      }
+    }
+    
+    // Override file list update function to use modern UI
+    var originalUpdateFileList;
+    if (typeof updateFileList === 'function') {
+      originalUpdateFileList = updateFileList;
+    }
+    
+    updateFileList = function() {
+      if (originalUpdateFileList) {
+        originalUpdateFileList();
+      }
+      
+      // After original function runs, reformat the file list with our new design
+      setTimeout(function() {
+        const fileList = document.getElementById('file_list');
+        if (fileList) {
+          const links = fileList.querySelectorAll('a');
+          if (links.length > 0) {
+            const newFileList = document.createElement('div');
+            
+            links.forEach(link => {
+              const date = link.textContent;
+              const url = link.getAttribute('href');
+              newFileList.appendChild(createArchiveItem(date, url));
+            });
+            
+            fileList.innerHTML = '';
+            fileList.appendChild(newFileList);
+          }
+        }
+      }, 100);
+    };
+    
+    // Override motion list update function to use modern UI
+    var originalUpdateMotionList;
+    if (typeof updateMotionList === 'function') {
+      originalUpdateMotionList = updateMotionList;
+    }
+    
+    updateMotionList = function() {
+      if (originalUpdateMotionList) {
+        originalUpdateMotionList();
+      }
+      
+      // After original function runs, reformat the motion list with our new design
+      setTimeout(function() {
+        const motionList = document.getElementById('motion_list');
+        if (motionList) {
+          const items = motionList.querySelectorAll('div:not(.notification)');
+          if (items.length > 0) {
+            const newMotionList = document.createElement('div');
+            
+            items.forEach(item => {
+              const text = item.textContent;
+              const time = new Date().toLocaleTimeString();
+              newMotionList.appendChild(createNotificationItem(text, time));
+            });
+            
+            motionList.innerHTML = '';
+            motionList.appendChild(newMotionList);
+          }
+        }
+      }, 100);
+    };
+    
+    // UI update functions to show camera status
+    function updateCameraStatus(isOn) {
+      const camStop = document.getElementById('cam_stop');
+      const camStart = document.getElementById('cam_start');
+      
+      if (isOn) {
+        camStop.classList.add('started');
+        camStop.querySelector('span').textContent = "Stop Stream";
+        camStart.disabled = true;
+      } else {
+        camStop.classList.remove('started');
+        camStop.querySelector('span').textContent = "Stop Stream";
+        camStart.disabled = false;
+      }
+    }
+    
+    // Motion detection status update
+    function updateMotionStatus(isEnabled) {
+      const motionBtn = document.getElementById('set_motion');
+      const motionText = document.getElementById('motion_txt');
+      
+      if (isEnabled) {
+        motionBtn.classList.add('btn-danger');
+        motionBtn.classList.remove('btn-secondary');
+        motionText.textContent = "Disable Motion";
+      } else {
+        motionBtn.classList.remove('btn-danger');
+        motionBtn.classList.add('btn-secondary');
+        motionText.textContent = "Enable Motion";
+      }
+    }
+    
+    // Initialize UI based on camera settings if available
+    document.addEventListener('DOMContentLoaded', function() {
+      // Wait for camera settings to load
+      setTimeout(function() {
+        if (typeof camera_config !== 'undefined' && camera_config) {
+          if (camera_config.fps) {
+            document.getElementById('fps').value = camera_config.fps;
+            document.getElementById('fps_value').textContent = camera_config.fps;
+          }
+          
+          if (camera_config.quality) {
+            document.getElementById('quality').value = camera_config.quality;
+            document.getElementById('quality_value').textContent = camera_config.quality;
+          }
+          
+          if (camera_config.brightness) {
+            document.getElementById('brightness').value = camera_config.brightness;
+            document.getElementById('brightness_value').textContent = camera_config.brightness;
+          }
+          
+          if (camera_config.contrast) {
+            document.getElementById('contrast').value = camera_config.contrast;
+            document.getElementById('contrast_value').textContent = camera_config.contrast;
+          }
+          
+          if (camera_config.gain) {
+            document.getElementById('gain').value = camera_config.gain;
+            document.getElementById('gain_value').textContent = camera_config.gain;
+          }
+          
+          // Update UI based on camera status if available
+          if (typeof cam_running !== 'undefined') {
+            updateCameraStatus(cam_running);
+          }
+          
+          // Update UI based on motion detection status if available
+          if (typeof motion_detect !== 'undefined') {
+            updateMotionStatus(motion_detect);
+          }
+        }
+        
+        // Initialize file and motion lists if available
+        if (typeof updateFileList === 'function') {
+          updateFileList();
+        }
+        
+        if (typeof updateMotionList === 'function') {
+          updateMotionList();
+        }
+      }, 1000);
+    });
+    
+    // Handle slider value updates
+    document.getElementById('fps').addEventListener('input', function() {
+      updateSliderValue('fps', this.value);
+    });
+    
+    document.getElementById('quality').addEventListener('input', function() {
+      updateSliderValue('quality', this.value);
+    });
+    
+    document.getElementById('brightness').addEventListener('input', function() {
+      updateSliderValue('brightness', this.value);
+    });
+    
+    document.getElementById('contrast').addEventListener('input', function() {
+      updateSliderValue('contrast', this.value);
+    });
+    
+    document.getElementById('gain').addEventListener('input', function() {
+      updateSliderValue('gain', this.value);
+    });
+  </script>
+</body>
+</html>
