@@ -351,12 +351,7 @@
           };
         }
         
-        // Initial UI update
-        if (typeof updateFileList === 'function') {
-          updateFileList();
-        }
-        
-        // Initialize sliders from current camera values if they're available
+        // Initialize UI based on current camera settings
         if (typeof camera_config !== 'undefined' && camera_config) {
           if (camera_config.fps) {
             document.getElementById('fps').value = camera_config.fps;
@@ -383,7 +378,8 @@
     });
   </script>
 
-  <!-- Include the original JavaScript file to maintain functionality -->
+  <!-- Include the original JavaScript files to maintain functionality -->
   <script src="script.js"></script>
+  <script src="common.js"></script>
 </body>
 </html>
