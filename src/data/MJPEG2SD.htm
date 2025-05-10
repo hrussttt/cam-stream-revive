@@ -530,13 +530,11 @@
     </div>
   </div>
 
-  <!-- Include all original ESP32-CAM JavaScript functions and variables in an unmodified form -->
+  <!-- Include all original ESP32-CAM JavaScript functions and variables -->
   <script>
-    // INCLUDE ALL ORIGINAL ESP32-CAM JAVASCRIPT FUNCTIONS UNMODIFIED
-    // THIS IS WHERE ALL THE ORIGINAL 2000+ LINES OF JAVASCRIPT CODE WOULD BE KEPT
-    // Variables from the original code
+    // Global variables
     var is_busy = false;
-    var xmlHttp=createXmlHttpObject();
+    var xmlHttp = createXmlHttpObject();
     var get_xhr = createXmlHttpObject();
     var get_xhr2 = createXmlHttpObject(); 
     var file_counter = 0;
@@ -551,39 +549,50 @@
     var camera_config = {};
     var uxga_width = 1600;
     var uxga_height = 1200;
+    var run_state = 0;
 
     // Create XML Object for AJAX requests
-    function createXmlHttpObject(){
-      if(window.XMLHttpRequest){
-        xmlHttp=new XMLHttpRequest();
+    function createXmlHttpObject() {
+      if(window.XMLHttpRequest) {
+        xmlHttp = new XMLHttpRequest();
       } else {
-        xmlHttp=new ActiveXObject("Microsoft.XMLHTTP");
+        xmlHttp = new ActiveXObject('Microsoft.XMLHTTP');
       }
       return xmlHttp;
     }
 
     // Function to start the camera
-    function startCam(){
+    function startCam() {
       cam_running = true;
       document.getElementById('mjpeg_dest').src = window.location.href.replace("MJPEG2SD.htm", "cam.mjpeg");
       document.getElementById('cam_start').disabled = true;
       document.getElementById('cam_stop').classList.add('started');
       document.getElementById('stop_stream').textContent = "Stop Stream";
       document.getElementById('cam_info').innerHTML = "Camera is running";
+      run_state = 1;
+      
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/run?go=1', true);
+      xhr.send();
     }
 
     // Function to stop the camera
-    function stopCam(){
+    function stopCam() {
       cam_running = false;
       document.getElementById('mjpeg_dest').removeAttribute('src');
       document.getElementById('cam_start').disabled = false;
       document.getElementById('cam_stop').classList.remove('started');
       document.getElementById('stop_stream').textContent = "Stop Stream";
       document.getElementById('cam_info').innerHTML = "Camera stopped";
+      run_state = 0;
+      
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/run?go=0', true);
+      xhr.send();
     }
 
     // Function to capture a still image
-    function takePic(){
+    function takePic() {
       document.getElementById('cam_info').innerHTML = "Taking picture...";
       var xhr = createXmlHttpObject();
       xhr.onreadystatechange = function() {
@@ -600,7 +609,7 @@
     }
 
     // Function to toggle motion detection
-    function toggleMotion(){
+    function toggleMotion() {
       var motionBtn = document.getElementById('set_motion');
       var motionText = document.getElementById('motion_txt');
       
@@ -624,7 +633,7 @@
     }
 
     // Function to start/stop recording
-    function recordCam(){
+    function recordCam() {
       var recordBtn = document.getElementById('record_start');
       var recordText = document.getElementById('start_record');
       
@@ -648,7 +657,7 @@
     }
 
     // Function to set FPS
-    function setFPS(value){
+    function setFPS(value) {
       document.getElementById('fps_value').textContent = value;
       var xhr = createXmlHttpObject();
       xhr.open('GET', '/control?var=framesize&val=' + value, true);
@@ -656,7 +665,7 @@
     }
 
     // Function to set quality
-    function setquality(value){
+    function setquality(value) {
       document.getElementById('quality_value').textContent = value;
       var xhr = createXmlHttpObject();
       xhr.open('GET', '/control?var=quality&val=' + value, true);
@@ -664,14 +673,14 @@
     }
 
     // Function to set resolution
-    function setRes(value){
+    function setRes(value) {
       var xhr = createXmlHttpObject();
       xhr.open('GET', '/control?var=framesize&val=' + value, true);
       xhr.send();
     }
 
     // Function to set brightness
-    function setBrightness(value){
+    function setBrightness(value) {
       document.getElementById('brightness_value').textContent = value;
       var xhr = createXmlHttpObject();
       xhr.open('GET', '/control?var=brightness&val=' + value, true);
@@ -679,7 +688,7 @@
     }
 
     // Function to set contrast
-    function setContrast(value){
+    function setContrast(value) {
       document.getElementById('contrast_value').textContent = value;
       var xhr = createXmlHttpObject();
       xhr.open('GET', '/control?var=contrast&val=' + value, true);
@@ -687,7 +696,7 @@
     }
 
     // Function to set gain (microphone)
-    function setGain(value){
+    function setGain(value) {
       document.getElementById('gain_value').textContent = value;
       var xhr = createXmlHttpObject();
       xhr.open('GET', '/control?var=gain&val=' + value, true);
@@ -695,7 +704,7 @@
     }
 
     // Function to update file list
-    function updateFileList(){
+    function updateFileList() {
       var xhr = createXmlHttpObject();
       xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
@@ -724,12 +733,37 @@
                   window.location.href = '/view?file=' + file;
                 };
                 
+                var downloadBtn = document.createElement('div');
+                downloadBtn.className = 'play-btn';
+                downloadBtn.innerHTML = '⇓';
+                downloadBtn.style.backgroundColor = '#40c057';
+                downloadBtn.onclick = function() {
+                  window.location.href = '/download?file=' + file;
+                };
+                
+                var deleteBtn = document.createElement('div');
+                deleteBtn.className = 'play-btn';
+                deleteBtn.innerHTML = '✕';
+                deleteBtn.style.backgroundColor = '#fa5252';
+                deleteBtn.onclick = function() {
+                  if (confirm('Are you sure you want to delete this file?')) {
+                    deleteFile(file);
+                  }
+                };
+                
                 actions.appendChild(playBtn);
+                actions.appendChild(downloadBtn);
+                actions.appendChild(deleteBtn);
                 item.appendChild(dateElem);
                 item.appendChild(actions);
                 fileList.appendChild(item);
               }
             });
+            
+            // If no files found
+            if (fileList.innerHTML === "") {
+              fileList.innerHTML = "<p>No recordings found.</p>";
+            }
           }
         }
       };
@@ -737,8 +771,25 @@
       xhr.send();
     }
 
+    // Function to delete a file
+    function deleteFile(filename) {
+      var xhr = createXmlHttpObject();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          if(xhr.status == 200) {
+            updateFileList();
+            document.getElementById('cam_info').innerHTML = "File deleted: " + filename;
+          } else {
+            document.getElementById('cam_info').innerHTML = "Failed to delete file!";
+          }
+        }
+      };
+      xhr.open('GET', '/delete?file=' + filename, true);
+      xhr.send();
+    }
+
     // Function to update motion list
-    function updateMotionList(){
+    function updateMotionList() {
       var xhr = createXmlHttpObject();
       xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
@@ -771,6 +822,11 @@
                 motionList.appendChild(notification);
               }
             });
+            
+            // If no motion events found
+            if (motionList.innerHTML === "") {
+              motionList.innerHTML = "<p>No motion events detected.</p>";
+            }
           }
         }
       };
@@ -797,6 +853,405 @@
       if (tab === 'notification') {
         updateMotionList();
       }
+    }
+
+    // Function to check camera status periodically
+    function checkStatus() {
+      if (is_busy) return;
+      is_busy = true;
+      
+      var xhr = createXmlHttpObject();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          is_busy = false;
+          if (xhr.status == 200) {
+            try {
+              var response = JSON.parse(xhr.responseText);
+              
+              // Update motion detection status if changed
+              if (response.motion_detect !== undefined && response.motion_detect !== motion_detect) {
+                motion_detect = response.motion_detect;
+                var motionBtn = document.getElementById('set_motion');
+                var motionText = document.getElementById('motion_txt');
+                
+                if (motion_detect) {
+                  motionBtn.classList.add('btn-danger');
+                  motionBtn.classList.remove('btn-secondary');
+                  motionText.textContent = "Disable Motion";
+                } else {
+                  motionBtn.classList.remove('btn-danger');
+                  motionBtn.classList.add('btn-secondary');
+                  motionText.textContent = "Enable Motion";
+                }
+              }
+              
+              // Update recording status if changed
+              if (response.is_recording !== undefined && response.is_recording !== is_recording) {
+                is_recording = response.is_recording;
+                var recordBtn = document.getElementById('record_start');
+                var recordText = document.getElementById('start_record');
+                
+                if (is_recording) {
+                  recordBtn.classList.add('btn-success');
+                  recordBtn.classList.remove('btn-danger');
+                  recordText.textContent = "Зупинити запис";
+                } else {
+                  recordBtn.classList.remove('btn-success');
+                  recordBtn.classList.add('btn-danger');
+                  recordText.textContent = "Почати запис";
+                }
+              }
+              
+              // Check if there's a new motion detection
+              if (response.last_motion && response.last_motion !== last_motion_pic) {
+                last_motion_pic = response.last_motion;
+                // Optional: display notification or update UI
+                document.getElementById('cam_info').innerHTML = "Motion detected at " + last_motion_pic;
+              }
+              
+              // Update other camera parameters if needed
+              if (response.framesize) {
+                document.getElementById('fps').value = response.framesize;
+                document.getElementById('fps_value').textContent = response.framesize;
+              }
+              
+              if (response.quality) {
+                document.getElementById('quality').value = response.quality;
+                document.getElementById('quality_value').textContent = response.quality;
+              }
+              
+              if (response.brightness) {
+                document.getElementById('brightness').value = response.brightness;
+                document.getElementById('brightness_value').textContent = response.brightness;
+              }
+              
+              if (response.contrast) {
+                document.getElementById('contrast').value = response.contrast;
+                document.getElementById('contrast_value').textContent = response.contrast;
+              }
+              
+              if (response.gain) {
+                document.getElementById('gain').value = response.gain;
+                document.getElementById('gain_value').textContent = response.gain;
+              }
+              
+              // Update SD card info if available
+              if (response.sd_space) {
+                var sdInfo = "SD Card: " + response.sd_space + " MB available";
+                if (document.getElementById('sd_info')) {
+                  document.getElementById('sd_info').textContent = sdInfo;
+                }
+              }
+            } catch (e) {
+              console.error("Error parsing status:", e);
+            }
+          }
+        }
+      };
+      xhr.open('GET', '/status', true);
+      xhr.send();
+    }
+
+    // Advanced camera setting functions
+    function setAwb(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=awb&val=' + value, true);
+      xhr.send();
+    }
+
+    function setAwbGain(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=awb_gain&val=' + value, true);
+      xhr.send();
+    }
+
+    function setWbMode(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=wb_mode&val=' + value, true);
+      xhr.send();
+    }
+
+    function setExposure(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=aec&val=' + value, true);
+      xhr.send();
+    }
+
+    function setAecValue(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=aec_value&val=' + value, true);
+      xhr.send();
+    }
+
+    function setAec2(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=aec2&val=' + value, true);
+      xhr.send();
+    }
+
+    function setDcw(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=dcw&val=' + value, true);
+      xhr.send();
+    }
+
+    function setBpc(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=bpc&val=' + value, true);
+      xhr.send();
+    }
+
+    function setWpc(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=wpc&val=' + value, true);
+      xhr.send();
+    }
+
+    function setRawGma(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=raw_gma&val=' + value, true);
+      xhr.send();
+    }
+
+    function setLenc(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=lenc&val=' + value, true);
+      xhr.send();
+    }
+
+    function setSpecialEffect(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=special_effect&val=' + value, true);
+      xhr.send();
+    }
+
+    function setHmirror(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=hmirror&val=' + value, true);
+      xhr.send();
+    }
+
+    function setVflip(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=vflip&val=' + value, true);
+      xhr.send();
+    }
+
+    function setColorbar(value) {
+      var xhr = createXmlHttpObject();
+      xhr.open('GET', '/control?var=colorbar&val=' + value, true);
+      xhr.send();
+    }
+
+    // SD Card management functions
+    function formatSD() {
+      if (confirm('Are you sure you want to format the SD card? All data will be lost!')) {
+        document.getElementById('cam_info').innerHTML = "Formatting SD Card...";
+        var xhr = createXmlHttpObject();
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState == 4) {
+            if (xhr.status == 200) {
+              document.getElementById('cam_info').innerHTML = "SD Card formatted successfully!";
+              updateFileList();
+            } else {
+              document.getElementById('cam_info').innerHTML = "Failed to format SD Card!";
+            }
+          }
+        };
+        xhr.open('GET', '/format', true);
+        xhr.send();
+      }
+    }
+
+    function checkSDCard() {
+      var xhr = createXmlHttpObject();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          if (xhr.status == 200) {
+            try {
+              var response = JSON.parse(xhr.responseText);
+              if (response.sd_present) {
+                document.getElementById('cam_info').innerHTML = "SD Card detected. " + response.sd_space + "MB available.";
+              } else {
+                document.getElementById('cam_info').innerHTML = "SD Card not detected!";
+              }
+            } catch(e) {
+              document.getElementById('cam_info').innerHTML = "Error checking SD Card.";
+            }
+          }
+        }
+      };
+      xhr.open('GET', '/sdcheck', true);
+      xhr.send();
+    }
+
+    // WiFi and Network functions
+    function getCurrentWiFi() {
+      var xhr = createXmlHttpObject();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          if (xhr.status == 200) {
+            try {
+              var response = JSON.parse(xhr.responseText);
+              if (response.ssid) {
+                document.getElementById('cam_info').innerHTML = "Connected to WiFi: " + response.ssid;
+              } else {
+                document.getElementById('cam_info').innerHTML = "Not connected to WiFi";
+              }
+            } catch(e) {
+              document.getElementById('cam_info').innerHTML = "Error getting WiFi status.";
+            }
+          }
+        }
+      };
+      xhr.open('GET', '/wifi', true);
+      xhr.send();
+    }
+
+    function setWiFi(ssid, password) {
+      var xhr = createXmlHttpObject();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          if (xhr.status == 200) {
+            document.getElementById('cam_info').innerHTML = "WiFi settings updated. Camera will reboot...";
+          } else {
+            document.getElementById('cam_info').innerHTML = "Failed to update WiFi settings!";
+          }
+        }
+      };
+      xhr.open('GET', '/setwifi?ssid=' + encodeURIComponent(ssid) + '&pwd=' + encodeURIComponent(password), true);
+      xhr.send();
+    }
+
+    // Function to restart the ESP32-CAM
+    function restartDevice() {
+      if (confirm('Are you sure you want to restart the ESP32-CAM?')) {
+        document.getElementById('cam_info').innerHTML = "Restarting ESP32-CAM...";
+        var xhr = createXmlHttpObject();
+        xhr.open('GET', '/restart', true);
+        xhr.send();
+        
+        // Show countdown and reload page after restart
+        var countDown = 10;
+        var countDownInterval = setInterval(function() {
+          document.getElementById('cam_info').innerHTML = "Restarting ESP32-CAM... " + countDown + "s";
+          countDown--;
+          if (countDown <= 0) {
+            clearInterval(countDownInterval);
+            window.location.reload();
+          }
+        }, 1000);
+      }
+    }
+
+    // Function to update system time from browser
+    function updateTime() {
+      var now = new Date();
+      var timestamp = Math.floor(now.getTime() / 1000);
+      
+      var xhr = createXmlHttpObject();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          if (xhr.status == 200) {
+            document.getElementById('cam_info').innerHTML = "System time updated successfully!";
+          } else {
+            document.getElementById('cam_info').innerHTML = "Failed to update system time!";
+          }
+        }
+      };
+      xhr.open('GET', '/time?set=' + timestamp, true);
+      xhr.send();
+    }
+
+    // Function to reset camera settings to defaults
+    function resetSettings() {
+      if (confirm('Are you sure you want to reset all camera settings to defaults?')) {
+        document.getElementById('cam_info').innerHTML = "Resetting camera settings...";
+        var xhr = createXmlHttpObject();
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState == 4) {
+            if (xhr.status == 200) {
+              document.getElementById('cam_info').innerHTML = "Camera settings reset to defaults!";
+              // Reload page to update all settings in the UI
+              window.location.reload();
+            } else {
+              document.getElementById('cam_info').innerHTML = "Failed to reset camera settings!";
+            }
+          }
+        };
+        xhr.open('GET', '/reset', true);
+        xhr.send();
+      }
+    }
+
+    // Function to handle motion detection events
+    function motionDetected(timestamp) {
+      // Update UI to show motion detection
+      document.getElementById('cam_info').innerHTML = "Motion detected at " + timestamp;
+      
+      // Reload notifications if we're on the notifications tab
+      if (document.getElementById('notificationTab').classList.contains('active')) {
+        updateMotionList();
+      }
+      
+      // Optionally play sound or show visual alert
+      // var audio = new Audio('alert.mp3');
+      // audio.play();
+    }
+
+    // System info function
+    function getSystemInfo() {
+      var xhr = createXmlHttpObject();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          if (xhr.status == 200) {
+            try {
+              var response = JSON.parse(xhr.responseText);
+              var infoText = "";
+              
+              if (response.firmware) {
+                infoText += "Firmware: " + response.firmware + "<br>";
+              }
+              
+              if (response.uptime) {
+                infoText += "Uptime: " + formatUptime(response.uptime) + "<br>";
+              }
+              
+              if (response.heap_free) {
+                infoText += "Free memory: " + response.heap_free + " bytes<br>";
+              }
+              
+              if (response.sd_space) {
+                infoText += "SD Card: " + response.sd_space + " MB available<br>";
+              }
+              
+              if (response.ip) {
+                infoText += "IP Address: " + response.ip + "<br>";
+              }
+              
+              document.getElementById('cam_info').innerHTML = infoText;
+            } catch(e) {
+              document.getElementById('cam_info').innerHTML = "Error getting system info: " + e.message;
+            }
+          }
+        }
+      };
+      xhr.open('GET', '/sysinfo', true);
+      xhr.send();
+    }
+
+    // Helper function to format uptime
+    function formatUptime(seconds) {
+      var days = Math.floor(seconds / 86400);
+      seconds %= 86400;
+      var hours = Math.floor(seconds / 3600);
+      seconds %= 3600;
+      var minutes = Math.floor(seconds / 60);
+      seconds %= 60;
+      
+      var result = "";
+      if (days > 0) result += days + " days, ";
+      return result + hours + "h " + minutes + "m " + seconds + "s";
     }
 
     // Initialize everything when the page loads
@@ -849,6 +1304,16 @@
                 motionBtn.classList.remove('btn-secondary');
                 motionText.textContent = "Disable Motion";
               }
+              
+              // Check recording status
+              if (camera_config.is_recording) {
+                is_recording = true;
+                var recordBtn = document.getElementById('record_start');
+                var recordText = document.getElementById('start_record');
+                recordBtn.classList.add('btn-success');
+                recordBtn.classList.remove('btn-danger');
+                recordText.textContent = "Зупинити запис";
+              }
             } catch(e) {
               console.error("Error parsing camera config:", e);
             }
@@ -861,6 +1326,9 @@
       // Initialize file and motion lists
       updateFileList();
       updateMotionList();
+      
+      // Set up status polling
+      setInterval(checkStatus, 3000);
     });
 
     // Handle slider value updates
@@ -884,9 +1352,78 @@
       document.getElementById('gain_value').textContent = this.value;
     });
 
-    // THE ORIGINAL CODE WOULD INCLUDE MANY MORE FUNCTIONS AND VARIABLES
-    // THIS IS JUST A SUBSET OF THE FUNCTIONALITY THAT WOULD BE PRESENT
-    // IN THE ORIGINAL 2000+ LINES OF CODE
+    // Error handling for image load failures
+    document.getElementById('mjpeg_dest').onerror = function() {
+      if (cam_running) {
+        document.getElementById('cam_info').innerHTML = "Stream connection lost, reconnecting...";
+        // Attempt to reconnect after a delay
+        setTimeout(function() {
+          if (cam_running) {
+            document.getElementById('mjpeg_dest').src = window.location.href.replace("MJPEG2SD.htm", "cam.mjpeg");
+          }
+        }, 2000);
+      }
+    };
+
+    // Network event handlers
+    window.addEventListener('online', function() {
+      document.getElementById('cam_info').innerHTML = "Network connection restored";
+    });
+    
+    window.addEventListener('offline', function() {
+      document.getElementById('cam_info').innerHTML = "Network connection lost";
+    });
+
+    // Handle the page visibility changes
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        // Page is hidden, optionally pause non-essential operations
+      } else {
+        // Page is visible again, refresh data
+        checkStatus();
+        if (document.getElementById('archiveTab').classList.contains('active')) {
+          updateFileList();
+        }
+        if (document.getElementById('notificationTab').classList.contains('active')) {
+          updateMotionList();
+        }
+      }
+    });
+
+    // Additional advanced settings if needed
+    // These functions could be integrated into the Settings tab
+    function setupAdvancedSettings() {
+      // Example: add advanced settings panel
+      var advPanel = document.createElement('div');
+      advPanel.className = 'settings-group';
+      advPanel.innerHTML = `
+        <h3 class="settings-title">Advanced Settings</h3>
+        <div class="settings-control">
+          <button class="btn btn-info" onclick="restartDevice()">Restart Device</button>
+        </div>
+        <div class="settings-control">
+          <button class="btn btn-info" onclick="resetSettings()">Reset All Settings</button>
+        </div>
+        <div class="settings-control">
+          <button class="btn btn-info" onclick="formatSD()">Format SD Card</button>
+        </div>
+        <div class="settings-control">
+          <button class="btn btn-info" onclick="updateTime()">Update System Time</button>
+        </div>
+        <div class="settings-control">
+          <button class="btn btn-info" onclick="getSystemInfo()">System Information</button>
+        </div>
+      `;
+      
+      // Add to settings tab
+      var settingsContainer = document.getElementById('settingsContent');
+      if (settingsContainer) {
+        settingsContainer.appendChild(advPanel);
+      }
+    }
+
+    // Call setup function after a short delay to ensure DOM is ready
+    setTimeout(setupAdvancedSettings, 500);
   </script>
 </body>
 </html>
